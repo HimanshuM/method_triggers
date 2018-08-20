@@ -12,11 +12,20 @@ use ArrayUtils\Arrays;
 
 		private function _addTrigger($trigger, $method, $actions) {
 
+			$this->_initializeMethodTriggers();
+
 			if (empty($actions)) {
 				$actions = ["all"];
 			}
 
 			foreach ($actions as $action) {
+
+				if (is_array($action)) {
+
+					$this->_addTrigger($trigger, $method, $action);
+					continue;
+
+				}
 
 				if ($this->$trigger->exists($action)) {
 					$this->$trigger[$action][] = $method;
@@ -37,7 +46,7 @@ use ArrayUtils\Arrays;
 			$this->_addTrigger("_beforeAction", $trigger, array_slice(func_get_args(), 1));
 		}
 
-		private function initialize() {
+		private function _initializeMethodTriggers() {
 
 			if (is_null($this->_beforeAction)) {
 				$this->_beforeAction = new Arrays;
