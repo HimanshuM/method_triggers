@@ -60,6 +60,8 @@ use ArrayUtils\Arrays;
 
 		function invokeTriggerFor($action, $before = true) {
 
+			$this->_initializeMethodTriggers();
+
 			$trigger = "_afterAction";
 			if ($before) {
 				$trigger = "_beforeAction";
