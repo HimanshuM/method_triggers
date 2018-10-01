@@ -9,20 +9,59 @@ use ArrayUtils\Arrays;
 
 		private $_beforeAction = null;
 		private $_afterAction = null;
+		private $_allBeforeActionTriggers = null;
+		private $_allAfterActionTriggers = null;
+
+		private function _addAllTrigger($trigger, $method, $except = []) {
+
+			if ($trigger == "_beforeAction") {
+				$trigger = "_allBeforeActionTriggers";
+			}
+			else {
+				$trigger = "_allAfterActionTriggers";
+			}
+
+			if (!$this->$trigger->exists($method)) {
+
+				if (!is_array($except)) {
+					$except = [$except];
+				}
+
+				$this->$trigger[$method] = $except;
+
+			}
+			else if (!empty($except)) {
+
+				if (!is_array($except)) {
+					$this->$trigger[$method][] = $except;
+				}
+				else {
+					$this->$trigger[$method] = array_merge($this->$trigger[$method], $except);
+				}
+
+			}
+
+		}
 
 		private function _addTrigger($trigger, $method, $actions) {
 
 			$this->_initializeMethodTriggers();
 
 			if (empty($actions)) {
-				$actions = ["all"];
+				$this->_addAllTrigger($trigger, $method);
 			}
 
 			foreach ($actions as $action) {
 
 				if (is_array($action)) {
 
-					$this->_addTrigger($trigger, $method, $action);
+					if (isset($action["except"])) {
+						$this->_addAllTrigger($trigger, $method, $action["except"]);
+					}
+					else {
+						$this->_addTrigger($trigger, $method, $action);
+					}
+
 					continue;
 
 				}
@@ -51,9 +90,15 @@ use ArrayUtils\Arrays;
 			if (is_null($this->_beforeAction)) {
 				$this->_beforeAction = new Arrays;
 			}
-
 			if (is_null($this->_afterAction)) {
 				$this->_afterAction = new Arrays;
+			}
+
+			if (is_null($this->_allBeforeActionTriggers)) {
+				$this->_allBeforeActionTriggers = new Arrays;
+			}
+			if (is_null($this->_allAfterActionTriggers)) {
+				$this->_allAfterActionTriggers = new Arrays;
 			}
 
 		}
@@ -67,12 +112,28 @@ use ArrayUtils\Arrays;
 				$trigger = "_beforeAction";
 			}
 
+			if ($trigger == "_beforeAction") {
+				$this->_invokeAllTriggers($this->_allBeforeActionTriggers, $action);
+			}
+
 			if ($this->$trigger->exists($action)) {
 				$this->_invokeTriggers($this->$trigger[$action]);
 			}
 
-			if ($this->$trigger->exists("all")) {
-				$this->_invokeTriggers($this->$trigger["all"]);
+			if ($trigger == "_afterAction") {
+				$this->_invokeAllTriggers($this->_allAfterActionTriggers, $action);
+			}
+
+		}
+
+		private function _invokeAllTriggers($trigger, $action) {
+
+			foreach ($trigger as $method => $except) {
+
+				if (!in_array($action, $except)) {
+					$this->$method();
+				}
+
 			}
 
 		}
